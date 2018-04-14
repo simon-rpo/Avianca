@@ -1,0 +1,65 @@
+
+---NAYIBE JARAMILLO
+/*2. Create 2 Tablespaces (0.125) :
+a. first one with 2 Gb and 1 datafile, tablespace should be named " avianca " */
+
+CREATE TABLESPACE AVIANCA DATAFILE 
+'avianca1.dbf' SIZE 100M
+AUTOEXTEND ON NEXT 1000K MAXSIZE 2048M
+EXTENT MANAGEMENT LOCAL 
+SEGMENT SPACE MANAGEMENT AUTO
+ONLINE;
+
+/*b. Undo tablespace with 25Mb of space and 1 datafile*/
+
+CREATE UNDO TABLESPACE UNDO_TBS datafile
+'UNDO_TBS1.dbf' size 25M
+AUTOEXTEND OFF;
+/*3. Set the undo tablespace to be used in the system (0.125)*/
+
+ALTER SYSTEM SET UNDO_TABLESPACE = UNDO_TBS scope = both;
+
+/*4. Create a DBA user (with the role DBA) and assign it to the tablespace called " avianca ", this user has
+unlimited space on the tablespace (The user should have permission to connect) (0.125)*/
+
+CREATE USER DBAUSER1 IDENTIFIED BY DBAUSER1
+DEFAULT TABLESPACE  avianca
+TEMPORARY TABLESPACE TEMP
+QUOTA UNLIMITED ON avianca;
+
+GRANT DBA TO DBAUSER1;
+GRANT CONNECT, RESOURCE TO DBAUSER1;
+
+/*5. Create 2 profiles. (0.125)
+a. Profile 1: "clerk" password life 40 days, one session per user, 10 minutes idle, 4 failed login
+attempts*/
+
+CREATE PROFILE CLERKPROFILE LIMIT
+SESSIONS_PER_USER 1
+CPU_PER_SESSION UNLIMITED
+CPU_PER_CALL UNLIMITED
+CONNECT_TIME 240
+IDLE_TIME 10
+PRIVATE_SGA 20 M
+FAILED_LOGIN_ATTEMPTS 4
+PASSWORD_LIFE_TIME 40
+PASSWORD_REUSE_MAX 4
+PASSWORD_LOCK_TIME 1
+PASSWORD_GRACE_TIME 2;
+ 
+
+/*b. Profile 3: "development " password life 100 days, two session per user, 30 minutes idle, no
+failed login attempts*/
+
+CREATE PROFILE DEVELOPMENTPROFILE LIMIT 
+SESSIONS_PER_USER 2
+CPU_PER_SESSION UNLIMITED
+CPU_PER_CALL UNLIMITED
+CONNECT_TIME 240
+IDLE_TIME 30
+PRIVATE_SGA 20 M
+--NO FAILED_LOGIN_ATTEMPTS 
+PASSWORD_LIFE_TIME 100
+PASSWORD_REUSE_MAX 5
+PASSWORD_LOCK_TIME 1
+PASSWORD_GRACE_TIME 2;
