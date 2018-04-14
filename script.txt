@@ -1,4 +1,10 @@
 
+---URL DEL VIDEO
+---  https://youtu.be/AVoTNYaCWmM
+
+
+
+
 ---NAYIBE JARAMILLO
 /*2. Create 2 Tablespaces (0.125) :
 a. first one with 2 Gb and 1 datafile, tablespace should be named " avianca " */
