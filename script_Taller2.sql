@@ -478,3 +478,90 @@ AS
     WHERE VUELO_ID = 4
 
 */
+
+/*
+PUNTO 5
+Vista que trae el calendario de rutas y vuelos para consultar salidas
+en un lapso de dos semanas.
+*/
+
+CREATE OR REPLACE VIEW FLIGHT_SCHEDULES
+AS
+SELECT R.ID RUTA_ID, V.ID VUELO_ID, 
+    FECHA_ESTIMADA_SALIDA,
+    TO_CHAR(I.FECHA_ESTIMADA_SALIDA, 'HH24:MI:SS') HORA_SALIDA,
+    TO_CHAR(I.FECHA_ESTIMADA_SALIDA, 'dd/MM/yyyy') FECHA_SALIDA
+FROM ITINERARIOS I
+    INNER JOIN VUELOS V ON I.VUELO_ID = V.ID
+    INNER JOIN RUTAS R ON R.ID = V.RUTA_ID
+WHERE   FECHA_ESTIMADA_SALIDA  >= TRUNC (FECHA_ESTIMADA_SALIDA, 'IW')
+    AND     FECHA_ESTIMADA_SALIDA  <  TRUNC (FECHA_ESTIMADA_SALIDA,   'IW') + 2;
+    
+    
+/*
+
+    SELECT * 
+    FROM FLIGHT_SCHEDULES
+    WHERE RUTA_ID = 2;  
+    
+*/
+
+
+/*
+PUNTO 6
+Planes de ejecucion.
+*/
+
+/*
+Explain plan para la vista usada en el procedimiento del punto 2.
+En este caso pasamos un id de vuelo de ejemplo para mostrarnos el plan
+de ejecucion de la consulta
+*/
+EXPLAIN PLAN 
+  SET statement_id = 'ex_plan_View2' FOR
+    SELECT VP.AVION_ID
+    FROM VUELOS_PROGRESO VP --> vista
+    WHERE VP.AEROPUERTO_DESTINO_ID = (SELECT R.AEROPUERTO_ORIGEN_ID 
+                                      FROM VUELOS V 
+                                        INNER JOIN RUTAS R ON R.ID = V.RUTA_ID
+                                      WHERE V.ID = 4)                       
+        AND abs( extract(HOUR FROM (VP.FECHA_ESTIMADA_LLEGADA - 
+                                    (SELECT I.FECHA_ESTIMADA_salida
+                                     FROM VUELOS V 
+                                        INNER JOIN ITINERARIOS I ON I.VUELO_ID = V.ID
+                                    WHERE V.ID = 4)))) <= 2
+        AND ROWNUM = 1;
+    
+    
+SELECT PLAN_TABLE_OUTPUT 
+FROM TABLE(DBMS_XPLAN.DISPLAY(NULL, 'ex_plan_View2','ADVANCED'));
+
+/*
+Explain plan para la vista usada en el procedimiento del punto 4.
+En este caso pasamos un id de vuelo de ejemplo para mostrarnos el plan
+de ejecucion de la consulta para traer la tripulacion de un vuelo.
+*/
+EXPLAIN PLAN 
+  SET statement_id = 'ex_plan_View4' FOR
+  SELECT *
+    FROM FLIGHT_TRIPULATION
+    WHERE VUELO_ID = 4;
+    
+    
+SELECT PLAN_TABLE_OUTPUT 
+FROM TABLE(DBMS_XPLAN.DISPLAY(NULL, 'ex_plan_View4','ADVANCED'));
+
+/*
+Explain plan para la vista usada en el procedimiento del punto 5.
+En este caso pasamos un id de Ruta de ejemplo para mostrarnos el plan
+de ejecucion de la consulta para traer la tripulacion de un vuelo.
+*/
+EXPLAIN PLAN 
+  SET statement_id = 'ex_plan_View5' FOR
+  SELECT * 
+    FROM FLIGHT_SCHEDULES
+    WHERE RUTA_ID = 2;
+    
+    
+SELECT PLAN_TABLE_OUTPUT 
+FROM TABLE(DBMS_XPLAN.DISPLAY(NULL, 'ex_plan_View5','ADVANCED'));
