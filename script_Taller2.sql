@@ -1,4 +1,4 @@
-/*
+﻿/*
 TALLER 2 - BASE DE DATOS
 */
 
@@ -335,3 +335,137 @@ END;
     SELECT * FROM VUELOS_CONFIRMADOS;
 
 */
+
+/*
+PUNTO 3
+Procedimiento que realiza el check in de los pasajeros y sus estados.
+*/
+CREATE OR REPLACE PROCEDURE realizar_CheckIn(
+    vuelo_id IN int, 
+    pasajero_id IN int, 
+    tipo_Asiento IN varchar) 
+IS
+    vuelo int := vuelo_id;
+    pasajero int := pasajero_id;
+    asiento varchar(30) := tipo_Asiento;
+    total_asientos int;
+    total_confirmados int;
+BEGIN
+    
+    -- Insertamos el nuevo registro a la tabla check in 
+    INSERT INTO CHECK_IN (ID, PASAJERO_ID, ITINERARIO_ID, 
+                          CIUDAD_ID, HORA_CHECK_IN)
+    SELECT 
+        id_check_in.NEXTVAL,
+        P.ID,
+        I.ID,
+        A.CIUDAD_ID,
+        sysdate
+    FROM VUELOS V 
+        INNER JOIN ITINERARIOS I ON V.ID = I.VUELO_ID 
+        INNER JOIN PASAJEROS P ON P.ID = pasajero
+        INNER JOIN RUTAS R ON R.ID = V.RUTA_ID
+        INNER JOIN AEROPUERTOS A ON A.ID = R.AEROPUERTO_ORIGEN_ID
+    WHERE V.ID = vuelo;
+    
+    DBMS_OUTPUT.PUT_LINE('CHECK IN OK!');
+    
+    --Consulto los asientos del avion
+    SELECT A.asientos_ejecutivos + A.asientos_economicos + A.asientos_estandar
+    INTO total_asientos
+    FROM VUELOS V 
+        INNER JOIN ITINERARIOS I ON V.ID = I.VUELO_ID 
+        INNER JOIN AVIONES A ON A.ID = I.AVION_ID
+    WHERE V.ID = vuelo;
+    
+    --Consulto los asientos asignados reales del avion.
+    SELECT I.PASAJEROS_ECONOMICA + i.PASAJEROS_EJECUTIVA
+    INTO total_confirmados
+    FROM VUELOS V 
+        INNER JOIN ITINERARIOS i ON V.ID = I.VUELO_ID 
+    WHERE V.ID = vuelo;
+    
+    --Validar que si hayan asientos disponibles...
+    IF (total_confirmados < total_asientos)
+        THEN
+            --Actualizo el itinerario con los asientos asignados en el vuelo.
+            UPDATE ITINERARIOS 
+            SET PASAJEROS_ECONOMICA = PASAJEROS_ECONOMICA + CASE WHEN asiento = 'ECONOMICA' THEN 1 ELSE 0 END,
+                PASAJEROS_EJECUTIVA = PASAJEROS_EJECUTIVA + CASE WHEN asiento = 'EJECUTIVA' THEN 1 ELSE 0 END
+            WHERE ID = (SELECT I.ID 
+                        FROM VUELOS V 
+                            INNER JOIN ITINERARIOS I ON V.ID = I.VUELO_ID 
+                        WHERE V.ID = vuelo);
+                                   
+            DBMS_OUTPUT.PUT_LINE('CHECK IN STATUS OK!');
+        END IF;
+    
+END;
+
+/*
+
+    EXEC realizar_CheckIn(4, 9, 'ECONOMICA');
+    SELECT * FROM CHECK_IN;
+    SELECT * FROM ITINERARIOS;
+    
+*/
+
+
+
+/*
+PUNTO 4
+Vista que trae la informacion de un vuelo y sus tripulantes en el tiempo,
+Aqui creamos varias vistas para traer la final.
+*/
+
+--Vista para informacion de Pilotos y Copilotos
+CREATE OR REPLACE VIEW PILOTOS_DATA
+AS
+    SELECT P.ID, P.HORAS_VUELO, P.TIPO_CARGO, 
+        E.NOMBRE, E.APELLIDO, E.SEXO, E.HORAS_DESCANSO, E.ESTADO
+    FROM PILOTOS P 
+        INNER JOIN EMPLEADOS E ON E.ID = P.EMPLEADO_ID;
+
+--Vista para informacion de Tripulacion auxiliar del vuelo  
+CREATE OR REPLACE VIEW TRIPULATION_DATA
+AS
+    SELECT E.ID, E.NOMBRE, E.APELLIDO, E.SEXO, 
+        E.HORAS_DESCANSO, E.ESTADO, E.TIPO_EMPLEADO
+    FROM EMPLEADOS E
+    WHERE TIPO_EMPLEADO IN ('Tripulante','Auxiliar de Servicio');
+
+--Vista Final
+CREATE OR REPLACE VIEW FLIGHT_TRIPULATION
+AS
+    SELECT
+        I.VUELO_ID,
+        P.ID PILOTO_ID, 
+        P.NOMBRE||' '||P.APELLIDO NOMBRE_PILOTO,
+        'PILOTO' TRIPULANTE
+    FROM ITINERARIOS I  
+        INNER JOIN PILOTOS_DATA P ON P.ID = I.PILOTO_ID
+    UNION
+    SELECT 
+        I.VUELO_ID,
+        COP.ID COPILOTO_ID, 
+        COP.NOMBRE||' '||COP.APELLIDO NOMBRE_COPILOTO,
+        'COPILOTO' TRIPULANTE
+    FROM ITINERARIOS I
+        INNER JOIN PILOTOS_DATA COP ON COP.ID = I.COPILOTO_ID
+    UNION
+    SELECT
+        I.VUELO_ID,
+        TRIP.ID TRIPULANTE_ID, 
+        TRIP.NOMBRE||' '||TRIP.APELLIDO NOMBRE_TRIPULANTE,
+        UPPER(TRIP.TIPO_EMPLEADO) TRIPULANTE
+    FROM ITINERARIOS I
+        INNER JOIN TRIPULANTE_PROGRAMACIONES T ON I.ID = T.ITINERARIO_ID
+        INNER JOIN TRIPULATION_DATA TRIP ON TRIP.ID = T.EMPLEADO_ID;
+        
+/*
+    
+    SELECT *
+    FROM FLIGHT_TRIPULATION
+    WHERE VUELO_ID = 4
+
+*/   
