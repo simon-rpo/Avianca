@@ -3,7 +3,7 @@
 TALLER 2 - BASE DE DATOS
 
 LINK VIDEO DE SUSTENTACION:
-https://www.youtube.com/watch?v=npw-XtMKixs
+https://www.youtube.com/watch?v=5Ro9qqk8PYQ&feature=youtu.be
 
 
 LINK DE ARTICULOS NARRATIVOS
